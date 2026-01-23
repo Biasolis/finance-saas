@@ -1,91 +1,76 @@
 version: '3.8'
 
 services:
-  # --- TRAEFIK (Proxy Reverso e SSL Automático) ---
-  # Atualizado para v3.6 para suportar versões recentes do Docker
+  # ==============================
+  # PROXY REVERSO (TRAEFIK)
+  # ==============================
   traefik:
-    image: traefik:v3.6
-    container_name: traefik
-    restart: always
+    image: traefik:v2.10
+    container_name: traefik_proxy
     command:
-      - "--api.insecure=true" # Painel em http://IP:8080
+      - "--api.insecure=true" # Dashboard do Traefik (DEV apenas)
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # Redirecionamento Automático HTTP -> HTTPS
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      # Configuração do Let's Encrypt (Certificado SSL)
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=biasolileonardo@gmail.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
-      - "443:443"
-      - "8080:8080" # Dashboard do Traefik (Opcional)
+      - "8080:8080" # Dashboard
     volumes:
-      - "./letsencrypt:/letsencrypt"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    networks:
-      - finance-network
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
-  # --- SUA APLICAÇÃO (Node.js) ---
-  finance-app:
-    build: .
-    container_name: finance-app
-    restart: unless-stopped
-    depends_on:
-      - finance-db
+  # ==============================
+  # BANCO DE DADOS (POSTGRES LOCAL)
+  # ==============================
+  db:
+    image: postgres:16-alpine
+    container_name: finance_saas_db
     environment:
-      - HOST=0.0.0.0
-      - PORT=3000
-      - NODE_ENV=production
-      
-      # Conexão com o Banco (Interna, sem SSL forçado)
-      - DATABASE_URL=postgresql://postgres:sua_senha_secreta@finance-db:5432/finance_db?sslmode=disable
-      
-      # Segurança (Essencial para o Login funcionar)
-      - JWT_SECRET=uma_senha_muito_segura_e_secreta_123
-      
-      # Inteligência Artificial (Dicas Financeiras)
-      # IMPORTANTE: Substitua abaixo pela sua chave real AIza...
-      - GEMINI_API_KEY=colar_sua_chave_do_google_aqui
-      
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_saas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     networks:
-      - finance-network
-    labels:
-      - "traefik.enable=true"
-      # Roteamento: Define o domínio da aplicação
-      - "traefik.http.routers.finance.rule=Host(`finance.app.ledcloud.com.br`)"
-      - "traefik.http.routers.finance.entrypoints=websecure"
-      - "traefik.http.routers.finance.tls.certresolver=myresolver"
-      # Aponta para a porta interna do container
-      - "traefik.http.services.finance.loadbalancer.server.port=3000"
+      - app-network
 
-  # --- BANCO DE DADOS (PostgreSQL) ---
-  finance-db:
-    image: postgres:15-alpine
-    container_name: finance-db
+  # ==============================
+  # BACKEND (API)
+  # ==============================
+  api:
+    build: ./backend
+    container_name: finance_saas_api
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: sua_senha_secreta
-      POSTGRES_DB: finance_db
+      - PORT=3000
+      - DATABASE_URL=postgres://user:password@db:5432/finance_saas
+      - NODE_ENV=development
+      - JWT_SECRET=sua_chave_secreta_aqui
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      # Carrega o script inicial original (sem alterações de código)
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
     networks:
-      - finance-network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+      - app-network
 
-networks:
-  finance-network:
-    driver: bridge
+  # ==============================
+  # FRONTEND (REACT)
+  # ==============================
+  # Será adicionado na próxima fase, mas já deixo o placeholder
+  # web:
+  #   build: ./frontend
+  # ...
 
 volumes:
-  pgdata:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

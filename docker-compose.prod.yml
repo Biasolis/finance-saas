@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # ==============================
+  # PROXY REVERSO (TRAEFIK)
+  # ==============================
+  traefik:
+    image: traefik:v2.10
+    container_name: saas_gateway
+    command:
+      - "--api.insecure=true" # Dashboard habilitado (porta 8080)
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"     # Acesso Web
+      - "8080:8080" # Dashboard Traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - saas-network
+
+  # ==============================
+  # FRONTEND (NGINX + REACT)
+  # ==============================
+  frontend:
+    build: ./frontend
+    container_name: saas_frontend
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      # Regra: Se acessar pelo IP/Localhost raiz, vai pro frontend
+      - "traefik.http.routers.frontend.rule=Host(`localhost`) || PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+    networks:
+      - saas-network
+
+  # ==============================
+  # BACKEND (NODE API)
+  # ==============================
+  backend:
+    build: ./backend
+    container_name: saas_backend
+    restart: always
+    environment:
+      - PORT=3000
+      # ATENÇÃO: Em produção real com NeonDB, altere aqui ou use arquivo .env
+      - DATABASE_URL=postgres://user:password@db:5432/finance_saas
+      - JWT_SECRET=sua_super_senha_secreta_prod
+      - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY} # Lê da sua máquina host ou .env
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      # Regra: Tudo que começar com /api vai pro backend
+      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+    networks:
+      - saas-network
+
+  # ==============================
+  # BANCO DE DADOS (POSTGRES)
+  # ==============================
+  db:
+    image: postgres:16-alpine
+    container_name: saas_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_saas
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - saas-network
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  saas-network:
+    driver: bridge

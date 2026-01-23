@@ -1,8 +1,75 @@
-node_modules
-server/node_modules
+# ==========================================
+# DEPENDÊNCIAS (Geral para Frontend e Backend)
+# ==========================================
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# SEGURANÇA & AMBIENTE (.env)
+# ==========================================
+# Bloqueia todos os arquivos .env para não vazar senhas/chaves
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+
+# Dica: Mantenha sempre um .env.example com valores fictícios
+# !.env.example 
+
+# ==========================================
+# FRONTEND (Vite/React)
+# ==========================================
+# Pasta de build de produção
+frontend/dist/
+frontend/dist-ssr/
+# Cache e Logs
+frontend/.eslintcache
+frontend/coverage/
+
+# ==========================================
+# BACKEND (Node.js)
+# ==========================================
+# Caso gere builds ou coverage de testes
+backend/dist/
+backend/build/
+backend/coverage/
+
+# ==========================================
+# SISTEMA OPERACIONAL (Mac/Windows/Linux)
+# ==========================================
 .DS_Store
-dist
-coverage
-docker-compose.yml
-client.old
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+
+# ==========================================
+# DOCKER & BANCO DE DADOS
+# ==========================================
+# Ignora os volumes de dados locais do Postgres (MUITO IMPORTANTE)
+postgres_data/
+postgres_data_prod/
+
+# Arquivos de log do Docker (se houver)
+*.log
+
+# ==========================================
+# IDEs e EDITORES
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.sw?
