@@ -4,10 +4,13 @@ const authController = require('../controllers/authController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Rotas Públicas
-router.post('/register', authController.registerTenant);
+router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword); // <--- NOVO
+router.post('/reset-password', authController.resetPassword);   // <--- NOVO
 
-// Rotas Protegidas (Exemplo de uso do middleware)
-router.get('/me', authMiddleware, authController.getMe);
+// Rotas Protegidas (Perfil)
+router.get('/profile', authMiddleware, authController.getProfile);
+router.put('/profile', authMiddleware, authController.updateProfile);
 
 module.exports = router;

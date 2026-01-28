@@ -24,15 +24,17 @@ export const AuthProvider = ({ children }) => {
         } else {
             const parsedUser = JSON.parse(storedUser);
             
-            // NORMALIZAÇÃO NA INICIALIZAÇÃO
-            // Garante que a propriedade isSuperAdmin exista, vindo de qualquer variação
+            // --- CORREÇÃO PRINCIPAL AQUI ---
+            // Normalização Forçada na Inicialização (F5/Reload)
+            // Garante que isSuperAdmin exista mesmo se vier como is_super_admin do cache antigo
+            const isSuperAdmin = parsedUser.isSuperAdmin === true || parsedUser.is_super_admin === true;
+
             const normalizedUser = {
                 ...parsedUser,
-                isSuperAdmin: parsedUser.isSuperAdmin === true || parsedUser.is_super_admin === true
+                isSuperAdmin: isSuperAdmin
             };
 
-            // Debug para confirmar o que foi carregado
-            // console.log("AuthContext: Usuário carregado do Storage:", normalizedUser);
+            // console.log("AuthContext: Usuário carregado e normalizado:", normalizedUser);
             
             setUser(normalizedUser);
             applyTheme(normalizedUser.tenant_color);
@@ -60,19 +62,15 @@ export const AuthProvider = ({ children }) => {
       
       const { token, user: userData } = response.data;
 
-      // Debug: Ver o que o backend mandou "cru"
-      console.log("AuthContext: Resposta crua do Login:", userData);
+      // --- CORREÇÃO PRINCIPAL AQUI ---
+      // Normalização Forçada no Login
+      const isSuperAdmin = userData.isSuperAdmin === true || userData.is_super_admin === true;
 
-      // NORMALIZAÇÃO NO LOGIN
-      // Aqui criamos o objeto oficial que será salvo
       const userWithTheme = { 
         ...userData, 
         tenant_color: userData.primary_color || '#2563eb',
-        // Força a criação da propriedade camelCase baseada na snake_case do banco
-        isSuperAdmin: userData.is_super_admin === true || userData.isSuperAdmin === true
+        isSuperAdmin: isSuperAdmin // Salva já normalizado como camelCase
       };
-
-      console.log("AuthContext: Usuário Normalizado salvo:", userWithTheme);
 
       localStorage.setItem('saas_token', token);
       localStorage.setItem('saas_user', JSON.stringify(userWithTheme));

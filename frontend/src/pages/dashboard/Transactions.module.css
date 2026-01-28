@@ -2,7 +2,13 @@
   background: white;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow: hidden; /* Para bordas arredondadas na tabela */
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .table {
@@ -14,34 +20,61 @@
 .table th {
   background-color: #f3f4f6;
   padding: 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .table td {
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f3f4f6;
   color: var(--text-color);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  vertical-align: middle;
 }
 
 .table tr:last-child td {
   border-bottom: none;
 }
 
+.table tr:hover td {
+  background-color: #f9fafb;
+}
+
+/* Badges de Tipo */
 .badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .badgeIncome { background-color: #d1fae5; color: #065f46; }
 .badgeExpense { background-color: #fee2e2; color: #991b1b; }
 
+/* Status Styles */
+.statusPending {
+  color: #d97706; /* Laranja */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statusCompleted {
+  color: #059669; /* Verde */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Header & Filtros */
 .headerAction {
   display: flex;
   justify-content: space-between;
@@ -49,17 +82,77 @@
   margin-bottom: 1.5rem;
 }
 
+.filterTabs {
+  display: flex;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.tabActive {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 .btnNew {
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.75rem 1.25rem;
   border-radius: var(--radius);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   transition: opacity 0.2s;
+  cursor: pointer;
 }
 
 .btnNew:hover { opacity: 0.9; }
+
+/* Botão de Ação na Tabela (Check/Uncheck) */
+.actionBtn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: #eff6ff;
+}
+
+.actionBtnCompleted {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.actionBtnCompleted:hover {
+  background: #fee2e2; /* Vira vermelho ao passar o mouse para indicar 'desfazer' */
+  color: #991b1b;
+  border-color: #fca5a5;
+}

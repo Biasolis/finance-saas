@@ -1,44 +1,148 @@
-.header {
-  margin-bottom: 2rem;
-}
-
-.title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+.container {
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* CARDS DE KPI (TOPO) */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
 }
 
 .card {
   background: white;
-  padding: 1.5rem;
   border-radius: var(--radius);
+  padding: 1.5rem;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 0.5rem;
+  transition: transform 0.2s;
+  border: 1px solid #e5e7eb;
 }
 
-.cardLabel {
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: #6b7280;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .cardValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1f2937;
 }
 
-/* Variações de cor para os valores */
-.income { color: var(--success-color); }
-.expense { color: var(--danger-color); }
-.balance { color: var(--primary-color); }
+.cardSubtext {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* ÁREA DE GRÁFICOS (MEIO) */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* Gráfico de linha ocupa 2/3, Pizza ocupa 1/3 */
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .chartsGrid {
+    grid-template-columns: 1fr; /* Em telas menores, um embaixo do outro */
+  }
+}
+
+.chartContainer {
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid #e5e7eb;
+  min-height: 400px;
+}
+
+.chartTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 1.5rem;
+}
+
+/* LISTA DE RECENTES (EMBAIXO) */
+.recentSection {
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid #e5e7eb;
+}
+
+.recentList {
+  list-style: none;
+  margin-top: 1rem;
+}
+
+.recentItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.recentItem:last-child {
+  border-bottom: none;
+}
+
+.itemInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.incomeIcon { background: #d1fae5; color: #065f46; }
+.expenseIcon { background: #fee2e2; color: #991b1b; }
+
+.itemText h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.itemText span {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.itemAmount {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.amountIncome { color: #059669; }
+.amountExpense { color: #dc2626; }

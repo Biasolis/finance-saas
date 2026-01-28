@@ -7,81 +7,63 @@ import './styles/global.css';
 // Páginas
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword'; // <--- NOVO
+import ResetPassword from './pages/auth/ResetPassword';   // <--- NOVO
+
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Transactions from './pages/dashboard/Transactions';
 import Reports from './pages/dashboard/Reports';
+import Settings from './pages/dashboard/Settings';
+import ServiceOrders from './pages/dashboard/ServiceOrders';
+import Clients from './pages/dashboard/Clients';
+import Recurring from './pages/dashboard/Recurring';
+import PrintOS from './pages/dashboard/PrintOS';
+import Products from './pages/dashboard/Products';
+import AuditLogs from './pages/dashboard/AuditLogs';
+import Notifications from './pages/dashboard/Notifications';
+import Profile from './pages/dashboard/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
-// Componente para proteger rotas Privadas (Logado)
 const PrivateRoute = ({ children }) => {
   const { signed, loading } = useContext(AuthContext);
-
-  if (loading) {
-    return <div style={{height: '100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>Carregando...</div>;
-  }
-
+  if (loading) return <div style={{height: '100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>Carregando...</div>;
   return signed ? children : <Navigate to="/login" />;
 };
 
-// Componente para proteger rotas de Super Admin (Logado + Flag Admin)
 const SuperAdminRoute = ({ children }) => {
   const { signed, user, loading } = useContext(AuthContext);
-
-  if (loading) {
-    return <div style={{height: '100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>Carregando...</div>;
-  }
-  
-  // VERIFICAÇÃO HÍBRIDA (Aceita isSuperAdmin OU is_super_admin)
-  // Isso resolve o problema de redirecionamento se o nome da variável variar
+  if (loading) return <div style={{height: '100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>Carregando...</div>;
   const isSuperUser = user?.isSuperAdmin === true || user?.is_super_admin === true;
-
-  // Debug no console para você verificar se está sendo bloqueado
-  if (signed && !isSuperUser) {
-      console.warn("Acesso Admin Bloqueado. Objeto User atual:", user);
-  }
-
-  if (signed && isSuperUser) {
-     return children;
-  }
-  
-  // Se não for admin, manda pro dashboard normal
+  if (signed && isSuperUser) return children;
   return <Navigate to="/dashboard" />;
 };
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* Rotas Públicas */}
+      {/* Rotas de Autenticação */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} /> {/* <--- ROTA */}
+      <Route path="/reset-password/:token" element={<ResetPassword />} /> {/* <--- ROTA */}
       
-      {/* Rotas Protegidas (Clientes) */}
-      <Route path="/dashboard" element={
-        <PrivateRoute>
-          <DashboardHome />
-        </PrivateRoute>
-      } />
-      
-      <Route path="/dashboard/transactions" element={
-        <PrivateRoute>
-          <Transactions />
-        </PrivateRoute>
-      } />
+      {/* Rotas Protegidas */}
+      <Route path="/dashboard" element={<PrivateRoute><DashboardHome /></PrivateRoute>} />
+      <Route path="/dashboard/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
+      <Route path="/dashboard/recurring" element={<PrivateRoute><Recurring /></PrivateRoute>} />
+      <Route path="/dashboard/products" element={<PrivateRoute><Products /></PrivateRoute>} />
+      <Route path="/dashboard/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
+      <Route path="/dashboard/service-orders" element={<PrivateRoute><ServiceOrders /></PrivateRoute>} />
+      <Route path="/dashboard/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+      <Route path="/dashboard/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+      <Route path="/dashboard/audit" element={<PrivateRoute><AuditLogs /></PrivateRoute>} />
+      <Route path="/dashboard/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+      <Route path="/dashboard/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
-      <Route path="/dashboard/reports" element={
-        <PrivateRoute>
-          <Reports />
-        </PrivateRoute>
-      } />
+      <Route path="/print/os/:id" element={<PrivateRoute><PrintOS /></PrivateRoute>} />
 
-      {/* Rota Protegida (Super Admin) */}
-      <Route path="/admin" element={
-        <SuperAdminRoute>
-          <AdminDashboard />
-        </SuperAdminRoute>
-      } />
+      <Route path="/admin" element={<SuperAdminRoute><AdminDashboard /></SuperAdminRoute>} />
 
-      {/* Redirecionamentos Padrão */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
@@ -91,7 +73,6 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      {/* ToastProvider envolve tudo para funcionar em qualquer tela */}
       <ToastProvider>
         <AuthProvider>
           <AppRoutes />
