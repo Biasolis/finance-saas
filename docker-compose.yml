@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # ==============================
+  # PROXY REVERSO (TRAEFIK)
+  # ==============================
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik_proxy
+    command:
+      - "--api.insecure=true" # Dashboard do Traefik (DEV apenas)
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080" # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # ==============================
+  # BANCO DE DADOS (POSTGRES LOCAL)
+  # ==============================
+  db:
+    image: postgres:16-alpine
+    container_name: finance_saas_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_saas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  # ==============================
+  # BACKEND (API)
+  # ==============================
+  api:
+    build: ./backend
+    container_name: finance_saas_api
+    restart: always
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://user:password@db:5432/finance_saas
+      - NODE_ENV=development
+      - JWT_SECRET=sua_chave_secreta_aqui
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - app-network
+
+  # ==============================
+  # FRONTEND (REACT)
+  # ==============================
+  # Será adicionado na próxima fase, mas já deixo o placeholder
+  # web:
+  #   build: ./frontend
+  # ...
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

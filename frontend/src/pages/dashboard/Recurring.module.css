@@ -1,0 +1,61 @@
+.container {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.title h2 { font-size: 1.5rem; color: #1f2937; margin-bottom: 0.25rem; }
+.title p { color: #6b7280; font-size: 0.9rem; }
+
+.actions { display: flex; gap: 1rem; }
+
+.btnProcess {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+}
+.btnProcess:hover { background-color: #e5e7eb; }
+
+.btnNew {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+}
+
+.table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.table th { text-align: left; padding: 1rem; background: #f9fafb; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 0.85rem; text-transform: uppercase; }
+.table td { padding: 1rem; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+
+.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.badgeIncome { background: #d1fae5; color: #065f46; }
+.badgeExpense { background: #fee2e2; color: #991b1b; }
+
+.btnDelete { background: transparent; border: none; cursor: pointer; color: #ef4444; }
+
+/* Form Styles */
+.formGroup { margin-bottom: 1rem; }
+.label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; color: #374151; }
+.input, .select { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; }
+.btnSave { width: 100%; padding: 0.8rem; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: 700; margin-top: 1rem; cursor: pointer; }

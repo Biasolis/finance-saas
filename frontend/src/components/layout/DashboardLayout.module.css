@@ -1,0 +1,19 @@
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr; /* Sidebar fixa + Conteúdo flúido */
+  min-height: 100vh;
+}
+
+.main {
+  background-color: #f9fafb;
+  padding: 2rem;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+/* Responsividade simples para telas menores (futuramente pode colapsar menu) */
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

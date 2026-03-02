@@ -1,0 +1,209 @@
+-- Habilita extensão para UUIDs
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ==========================================
+-- 1. TABELA DE TENANTS (EMPRESAS/CLIENTES)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS tenants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL, -- Para identificar a empresa na URL ou Login
+    logo_url TEXT,
+    primary_color VARCHAR(7) DEFAULT '#000000', -- Configuração White-label
+    secondary_color VARCHAR(7) DEFAULT '#ffffff', -- Configuração White-label
+    plan_tier VARCHAR(50) DEFAULT 'basic', -- 'basic', 'pro', 'enterprise'
+    ai_usage_limit INTEGER DEFAULT 100, -- Limite de requisições ao Gemini
+    ai_usage_current INTEGER DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 2. TABELA DE USUÁRIOS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE, -- Isolamento
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin', -- 'super_admin', 'admin', 'viewer'
+    is_super_admin BOOLEAN DEFAULT FALSE, -- Acesso global
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_email_per_tenant UNIQUE (tenant_id, email) -- Email único por empresa
+);
+
+-- ==========================================
+-- 3. TABELA DE CATEGORIAS FINANCEIRAS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS categories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) CHECK (type IN ('income', 'expense')),
+    color VARCHAR(7),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 4. TABELA DE TRANSAÇÕES (Financeiro)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    description TEXT NOT NULL,
+    amount NUMERIC(15, 2) NOT NULL, -- Suporte a grandes valores
+    type VARCHAR(20) CHECK (type IN ('income', 'expense')),
+    cost_type VARCHAR(20) CHECK (cost_type IN ('fixed', 'variable')), -- Fixo ou Variável
+    status VARCHAR(20) DEFAULT 'completed', -- 'pending', 'completed'
+    date TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES users(id)
+);
+
+-- ==========================================
+-- 5. TABELA DE LOGS DE IA (Gemini)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS ai_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id),
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
+    interaction_type VARCHAR(100), -- 'financial_analysis', 'categorization'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para Performance (Extremamente Importante para SQL Puro)
+CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_transactions_tenant ON transactions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+CREATE INDEX IF NOT EXISTS idx_categories_tenant ON categories(tenant_id);
+
+-- 1. Adiciona configuração de fechamento na empresa
+ALTER TABLE tenants ADD COLUMN closing_day INTEGER DEFAULT 1;
+
+-- 2. Garante que a coluna status existe (caso não tenha criado)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'completed';
+
+-- 3. Preenche transações antigas que podem estar com status NULL (Isso corrige o "não aparece nada")
+UPDATE transactions SET status = 'completed' WHERE status IS NULL;
+
+CREATE TABLE IF NOT EXISTS service_orders (
+  id SERIAL PRIMARY KEY,
+  -- AQUI ESTAVA O ERRO: Mudamos de INTEGER para UUID para bater com a tabela tenants
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  client_name VARCHAR(255) NOT NULL,
+  equipment VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(50) DEFAULT 'open', -- open, in_progress, waiting, completed
+  priority VARCHAR(20) DEFAULT 'normal', -- low, normal, high
+  price NUMERIC(10, 2) DEFAULT 0.00,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS clients (
+  id SERIAL PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  document VARCHAR(50), -- CPF ou CNPJ
+  address TEXT,
+  type VARCHAR(20) DEFAULT 'client', -- client, supplier, both
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Opcional: Adicionar coluna client_id na tabela service_orders para vincular futuramente
+ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES clients(id);
+
+-- Tabela para guardar os modelos de recorrência
+CREATE TABLE IF NOT EXISTS recurring_transactions (
+  id SERIAL PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  description VARCHAR(255) NOT NULL,
+  amount NUMERIC(10, 2) NOT NULL,
+  type VARCHAR(20) NOT NULL, -- income, expense
+  frequency VARCHAR(20) DEFAULT 'monthly', -- monthly, weekly, yearly
+  start_date DATE NOT NULL,
+  next_run DATE NOT NULL, -- A data que deve gerar a próxima transação
+  active BOOLEAN DEFAULT true,
+  category_id INTEGER, -- Opcional: vincular categoria
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Adiciona a coluna client_id nas transações para saber QUEM pagou/recebeu
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES clients(id);
+
+-- Índice para melhorar a performance dos relatórios
+CREATE INDEX IF NOT EXISTS idx_transactions_client ON transactions(client_id);
+
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  sale_price NUMERIC(10, 2) NOT NULL DEFAULT 0, -- Preço de Venda
+  cost_price NUMERIC(10, 2) NOT NULL DEFAULT 0, -- Preço de Custo (para calcular lucro futuro)
+  stock INTEGER NOT NULL DEFAULT 0,             -- Quantidade Atual
+  min_stock INTEGER DEFAULT 5,                  -- Ponto de Pedido (Alerta)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 1. Tabela de Auditoria (Rastreabilidade)
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id SERIAL PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id), -- CORREÇÃO: Alterado de INTEGER para UUID
+  action VARCHAR(50) NOT NULL, -- CREATE, UPDATE, DELETE, LOGIN
+  entity VARCHAR(50) NOT NULL, -- TRANSACTION, PRODUCT, SERVICE_ORDER
+  entity_id INTEGER,           -- ID do item afetado (Assume que produtos/transações usam ID numérico)
+  details TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Tabela de Notificações
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  message TEXT,
+  type VARCHAR(20) DEFAULT 'info', -- info, warning, success, error
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 5;
+
+-- Tabela de Planos (Modelos)
+CREATE TABLE IF NOT EXISTS plans (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE, -- Ex: 'Basic', 'Gold', 'Diamond'
+  max_users INTEGER DEFAULT 5,
+  ai_usage_limit INTEGER DEFAULT 100,
+  price NUMERIC(10, 2) DEFAULT 0.00,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inserir alguns planos padrão para começar
+INSERT INTO plans (name, max_users, ai_usage_limit, price) VALUES 
+('Start', 3, 50, 49.90),
+('Pro', 10, 500, 149.90),
+('Business', 50, 2000, 399.90)
+ON CONFLICT DO NOTHING;
+
+-- Adiciona coluna de anexo nas transações
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS attachment_path TEXT;
+
+-- Adiciona coluna de avatar na tabela de usuários
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path TEXT;
+
+-- Adiciona colunas para recuperação de senha
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMP;
